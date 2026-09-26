@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ระบบนำทางและแจ้งเตือนจุดเสี่ยงอุบัติเหตุ</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+  
+  <!-- 📍 Marker Cluster CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+  
+  <style>
+    :root { 
+      --bg-light: #f8f9fa; 
+      --panel-bg: #ffffff; 
+      --text-main: #1f2937; 
+      --text-muted: #6b7280; 
+      --accent: #2563eb; 
+      --color-dead: #dc2626; 
+      --card-bg: #f3f4f6;
+    }
+    body { margin: 0; font-family: 'Prompt', sans-serif; background: var(--bg-light); color: var(--text-main); overflow: hidden; }
+    .layout { display: grid; grid-template-columns: 1fr 340px; height: 100vh; position: relative; }
+    #map { width: 100%; height: 100%; z-index: 1; }
+    .leaflet-routing-container { display: none !important; }
+
+    /* ค้นหา */
+    .search-box { position: absolute; top: 20px; left: 60px; width: calc(100% - 100px); max-width: 350px; z-index: 1000; }
+    .search-input { width: 100%; padding: 14px 20px; border-radius: 30px; border: 1px solid #e5e7eb; box-shadow: 0 4px 15px rgba(0,0,0,0.15); font-family: inherit; font-size: 1rem; background: #ffffff; color: #111827; outline: none; }
+    .search-results { background: #ffffff; margin-top: 8px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); max-height: 250px; overflow-y: auto; display: none; flex-direction: column; border: 1px solid #e5e7eb; }
+    .search-item { padding: 12px 20px; cursor: pointer; border-bottom: 1px solid #f3f4f6; font-size: 0.9rem; color: #374151; }
+    .search-item:hover { background: #f9fafb; color: #111827; }
+    .clear-route-btn { position: absolute; top: 12px; right: 12px; background: #dc2626; color: white; border: none; border-radius: 50%; width: 28px; height: 28px; cursor: pointer; display: none; justify-content: center; align-items: center; font-weight: bold; }
+
+    /* ปุ่มลอยบนแผนที่ */
+    .gps-btn { position: absolute; bottom: 30px; right: 20px; background: #2563eb; color: white; border: none; padding: 12px 20px; border-radius: 30px; font-family: inherit; font-weight: 500; font-size: 0.95rem; cursor: pointer; z-index: 1000; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+    .start-nav-btn { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); background: #16a34a; color: white; border: none; padding: 14px 32px; border-radius: 30px; font-family: inherit; font-weight: 600; font-size: 1.1rem; cursor: pointer; z-index: 1000; box-shadow: 0 4px 15px rgba(0,0,0,0.25); display: none; }
+
+    /* แผงควบคุมและรายการข้อมูล */
+    .panelcol { background: var(--panel-bg); padding: 20px; overflow-y: auto; border-left: 1px solid #e5e7eb; display: flex; flex-direction: column; gap: 15px; z-index: 1010; position: relative; box-shadow: -2px 0 10px rgba(0,0,0,0.05); }
+    .drag-handle { display: none; }
+    .my-location-card { background: var(--card-bg); padding: 12px 15px; border-radius: 10px; border-left: 4px solid var(--accent); }
+    .my-location-card .title { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 2px; }
+    .my-location-card .loc-name { font-weight: 600; color: #111827; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .section-title { font-size: 0.95rem; font-weight: 600; margin: 0 0 8px 0; color: #374151; }
+    .seg { display: flex; gap: 6px; flex-wrap: wrap; }
+    .seg button { flex: 1; min-width: 70px; padding: 8px 5px; border: 1px solid #e5e7eb; border-radius: 6px; background: #ffffff; color: #4b5563; font-family: inherit; cursor: pointer; font-size: 0.8rem; text-align: center; font-weight: 500; }
+    .seg button[aria-pressed="true"] { background: var(--accent); color: white; border-color: var(--accent); font-weight: 600; }
+    
+    /* รายการการ์ด */
+    .rank { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; padding-bottom: 30px;}
+    .rank li { background: #ffffff; padding: 12px 15px; border-radius: 10px; cursor: pointer; transition: 0.2s; border: 1px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+    .rank li:hover { background: #f9fafb; border-color: #d1d5db; }
+    .rank .nm { display: block; font-size: 0.9rem; font-weight: 600; color: #111827;}
+    .rank .desc { font-size: 0.82rem; color: #dc2626; display: block; margin-top: 4px; font-weight: 600;}
+    .rank .sub-desc { font-size: 0.78rem; color: #6b7280; display: block; margin-top: 2px;}
+    .status-badge { display: inline-block; background: #fee2e2; color: #dc2626; padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; font-weight: 600; float: right; }
+    .distance-badge { display: inline-block; background: #dbeafe; color: #1e40af; padding: 3px 10px; border-radius: 12px; font-size: 0.78rem; font-weight: 600; margin-top: 6px; }
+
+    @media (max-width: 768px) {
+      .layout { display: block; }
+      #map { height: 100vh; width: 100vw; }
+      .search-box { left: 15px; width: calc(100% - 30px); top: 15px;}
+      .panelcol { position: fixed; bottom: 0; left: 0; width: 100%; height: 75vh; border-radius: 20px 20px 0 0; padding-top: 10px; box-shadow: 0 -5px 25px rgba(0,0,0,0.15); transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); transform: translateY(calc(100% - 150px)); border-left: none; box-sizing: border-box; }
+      .panelcol.expanded { transform: translateY(0); }
+      .drag-handle { display: block; width: 45px; height: 6px; background: #d1d5db; border-radius: 10px; margin: 0 auto 15px auto; cursor: pointer; }
+      .gps-btn { bottom: 170px; right: 15px; }
+      .start-nav-btn { bottom: 170px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="layout" id="mainLayout">
+  <div id="map"></div>
+
+  <div class="search-box">
+    <div style="position: relative;">
+      <input type="text" id="searchInput" class="search-input" placeholder="ค้นหาจุดหมายปลายทาง..." autocomplete="off">
+      <button class="clear-route-btn" id="clearRouteBtn" title="ยกเลิกเส้นทาง">&times;</button>
+    </div>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+
+  <button class="gps-btn" id="gpsBtn">📍 พิกัดฉัน</button>
+  <button class="start-nav-btn" id="startNavBtn">🚙 เริ่มนำทาง</button>
+
+  <div class="panelcol" id="dataPanel">
+    <div class="sheet-header-area" id="sheetHeader">
+      <div class="drag-handle"></div>
+      <div class="my-location-card">
+        <div class="title">📍 ตำแหน่งปัจจุบัน</div>
+        <div class="loc-name" id="currentLocationText">กำลังระบุตำแหน่ง...</div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <h3 class="section-title">ประเภทพาหนะที่เกิดอุบัติเหตุ</h3>
+      <div class="seg" id="vehicleFilterGroup">
+        <button type="button" aria-pressed="true" data-vfilter="all">ทั้งหมด</button>
+        <button type="button" aria-pressed="false" data-vfilter="bike">🛵 มอเตอร์ไซค์</button>
+        <button type="button" aria-pressed="false" data-vfilter="car">🚗 รถยนต์</button>
+        <button type="button" aria-pressed="false" data-vfilter="truck">🚛 รถบรรทุก</button>
+      </div>
+    </div>
+    
+    <section style="flex:1; overflow-y: auto;">
+      <h3 class="section-title" id="panelListTitle" style="color: #111827; font-size: 1.05rem;">รายการจุดเสี่ยงอุบัติเหตุ</h3>
+      <ul class="rank" id="panelListContainer"></ul>
+    </section>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+
+<script>
+  // ☀️ แผนที่แบบสว่างสู้แสงแดดกลางวัน
+  const map = L.map('map', { zoomControl: false, preferCanvas: true }).setView([13.736717, 100.523186], 6);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+
+  const markerClusterGroup = L.markerClusterGroup({
+    chunkedLoading: true,
+    maxClusterRadius: 50,
+    spiderfyOnMaxZoom: true,
+    showCoverageOnHover: false,
+    zoomToBoundsOnClick: true
+  });
+  map.addLayer(markerClusterGroup);
+
+  let accidents = [];
+  let currentRisksInView = []; 
+  let activeVehicleFilter = 'all';
+  let isRouteActive = false;
+
+  const GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1DcFU2f2NBi20Gu-8cxEAkmvJl0_IU2eQUvrPZgAmDVg/export?format=csv";
+
+  function parseICD10(code) {
+    if (!code) return "อุบัติเหตุทางถนน";
+    let c = code.toString().trim().toUpperCase();
+    if (c === 'V892') return 'อุบัติเหตุยานยนต์ทางถนน';
+    if (c === 'Y349') return 'อุบัติเหตุทางถนน';
+    if (c === 'V299') return 'อุบัติเหตุผู้ขับขี่รถจักรยานยนต์';
+    if (c === 'V284' || c === 'V289') return 'รถจักรยานยนต์ชนสิ่งกีดขวาง / เสียหลัก';
+    if (c === 'V234') return 'รถจักรยานยนต์ชนกับรถยนต์';
+    if (c === 'V099') return 'อุบัติเหตุคนเดินเท้าถูกรถชน';
+    if (c === 'V499') return 'อุบัติเหตุผู้โดยสาร/ผู้ขับขี่รถยนต์';
+    if (c === 'X599') return 'อุบัติเหตุทางถนน';
+    return อุบัติเหตุทางถนน (รหัส ${c});
+  }
+
+  function cleanNum(val) {
+    if (val === null || val === undefined) return NaN;
+    let s = String(val).replace(/,/g, '').trim();
+    return parseFloat(s);
+  }
+
+  function validateAndFixTH(lat, lng) {
+    if (isNaN(lat) || isNaN(lng) || lat === 0 || lng === 0) return null;
+    if (lat >= 97.0 && lat <= 106.0 && lng >= 5.5 && lng <= 20.5) {
+      let tmp = lat; lat = lng; lng = tmp;
+    }
+    if (lat >= 5.5 && lat <= 20.5 && lng >= 97.0 && lng <= 106.0) {
+      return { lat: lat, lng: lng };
+    }
+    return null;
+  }
+
+  function extractValidLatLng(item) {
+    const latKeys = ['Acc_Lat', 'lat', 'latitude', 'Lat', 'LAT', 'Y'];
+    const lngKeys = ['Acc_long', 'lng', 'longitude', 'Lng', 'LNG', 'Long', 'LONG', 'X'];
+
+    let rawLat = null, rawLng = null;
+    for (let k of latKeys) { if (item[k] !== undefined && item[k] !== null && String(item[k]).trim() !== '') { rawLat = item[k]; break; } }
+    for (let k of lngKeys) { if (item[k] !== undefined && item[k] !== null && String(item[k]).trim() !== '') { rawLng = item[k]; break; } }
+
+    let coord = validateAndFixTH(cleanNum(rawLat), cleanNum(rawLng));
+    if (coord) return coord;
+
+    for (let key in item) {
+      if (typeof item[key] === 'string' || typeof item[key] === 'number') {
+        let text = String(item[key]);
+        let match = text.match(/(5|[6-9]|1[0-9]|20)\.\d+[\s,]+(9[7-9]|10[0-6])\.\d+/);
+        if (match) {
+          let parts = match[0].split(/[\s,]+/);
+          if (parts.length >= 2) {
+            let c = validateAndFixTH(parseFloat(parts[0]), parseFloat(parts[1]));
+            if (c) return c;
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  function loadDataFromGoogleSheets() {
+    Papa.parse(GOOGLE_SHEET_URL, {
+      download: true,
+      header: true,
+      dynamicTyping: true,
+      skipEmptyLines: true,
+      complete: function(results) {
+        accidents = [];
+        let count = 1;
+
+        results.data.forEach((item) => {
+          let validCoord = extractValidLatLng(item);
+
+          if (validCoord) {
+            let prov = item.Province || item.province || "";
+            let dist = item.District || item.district || "";
+            let subDist = item.Acc_Sub_Dist || item.subdistrict || "";
+            let placeName = item.place || (subDist || dist ? ต.${subDist} อ.${dist} จ.${prov} : จุดเสี่ยงอุบัติเหตุ);
+            let veh = item.Vehicle || item.type || "ไม่ระบุพาหนะ";
+            let causeDetail = parseICD10(item.ICD_10);
+            let accidentDate = item.DeadDate_EN ? String(item.DeadDate_EN).split('T')[0] : "-";
+
+            accidents.push({
+              id: count++,
+              place: placeName,
+              lat: validCoord.lat,
+              lng: validCoord.lng,
+              type: veh,
+              cause: causeDetail,
+              severity: "เสียชีวิต",
+              province: prov,
+              district: dist,
+              subDistrict: subDist,
+              age: item.Age || "-",
+              sex: item.Sex || "-",
+              date: accidentDate
+            });
+          }
+        });
+
+        currentRisksInView = accidents;
+        refreshView();
+      }
+    });
+  }
+
+  function matchesVehicleFilter(vehType) {
+    if (activeVehicleFilter === 'all') return true;
+    if (!vehType) return false;
+    let t = vehType.toString().toLowerCase();
+    
+    if (activeVehicleFilter === 'bike') {
+      return t.includes('จักรยาน') || t.includes('มอเตอร์ไซค์') || t.includes('มอไซค์');
+    }
+    if (activeVehicleFilter === 'car') {
+      return !t.includes('จักรยาน') && !t.includes('มอเตอร์ไซค์') && !t.includes('มอไซค์') &&
+             (t.includes('รถยนต์') || t.includes('เก๋ง') || t.includes('ปิกอัพ') || t.includes('กระบะ') || t.includes('ตู้'));
+    }
+    if (activeVehicleFilter === 'truck') {
+      return t.includes('บรรทุก') || t.includes('สิบล้อ') || t.includes('พ่วง') || t.includes('เทรลเลอร์');
+    }
+    return true;
+  }
+
+  function getVehicleIcon(vehType) {
+    if (!vehType) return '🚨';
+    let t = vehType.toString().toLowerCase();
+    if (t.includes('จักรยาน') || t.includes('มอเตอร์ไซค์')) return '🛵';
+    if (t.includes('ยนต์') || t.includes('เก๋ง') || t.includes('ปิกอัพ') || t.includes('กระบะ')) return '🚗';
+    if (t.includes('บรรทุก') || t.includes('สิบล้อ') || t.includes('พ่วง')) return '🚛';
+    return '🚨';
+  }
+
+  function renderMarkers() {
+    markerClusterGroup.clearLayers();
+    const tempMarkers = [];
+    
+    currentRisksInView.forEach(acc => {
+      if (isNaN(acc.lat) || isNaN(acc.lng)) return;
+      if (!matchesVehicleFilter(acc.type)) return;
+
+      let iconSymbol = getVehicleIcon(acc.type);
+      const marker = L.circleMarker([acc.lat, acc.lng], { 
+        radius: 7, 
+        fillColor: '#dc2626', 
+        color: "#ffffff", 
+        weight: 2, 
+        fillOpacity: 0.9 
+      });
+      
+      let popupTxt = `
+        <div style="font-family: 'Prompt', sans-serif;">
+          <b style="font-size: 1rem; color: #111827;">📍 ${acc.place}</b><br><br>
+          ⚠️ <b>สถานะ:</b> <span style="color:#dc2626; font-weight:bold;">🔴 ${acc.severity}</span><br>
+          💥 <b>สาเหตุ/พฤติการณ์:</b> ${acc.cause}<br>
+          ${iconSymbol} <b>พาหนะ:</b> ${acc.type}<br>
+          👤 <b>ผู้ประสบเหตุ:</b> เพศ${acc.sex} (อายุ ${acc.age} ปี)<br>
+          📅 <b>วันที่เกิดเหตุ:</b> ${acc.date}
+        </div>
+      `;
+      if(acc.distFromStart !== undefined) popupTxt += <br><span style="color:#2563eb; font-weight:bold;">📍 อีก ${acc.distFromStart} กม.</span>;
+      
+      marker.bindPopup(popupTxt);
+      tempMarkers.push(marker);
+    });
+
+    markerClusterGroup.addLayers(tempMarkers);
+  }
+
+  function updatePanelList() {
+    const container = document.getElementById('panelListContainer');
+    container.innerHTML = '';
+    
+    const filteredData = currentRisksInView.filter(acc => matchesVehicleFilter(acc.type));
+
+    if (filteredData.length === 0) {
+      container.innerHTML = '<li style="text-align:center; color:#6b7280; margin-top:20px;">ไม่พบจุดเสี่ยงตามประเภทรถที่เลือก</li>';
+      return;
+    }
+
+    filteredData.slice(0, 100).forEach(acc => {
+      let iconSymbol = getVehicleIcon(acc.type);
+      let li = document.createElement('li');
+      li.onclick = () => { map.flyTo([acc.lat, acc.lng], 16); document.getElementById('dataPanel').classList.remove('expanded'); };
+      
+      let distBadge = isRouteActive && acc.distFromStart !== undefined ? <span class="distance-badge">🚗 อีก ${acc.distFromStart} กม.</span> : '';
+      
+      li.innerHTML = `
+        <span class="status-badge">🔴 ${acc.severity}</span>
+        <span class="nm">${acc.place}</span>
+        <span class="desc">💥 ${acc.cause}</span>
+        <span class="sub-desc">${iconSymbol} ${acc.type} | เพศ${acc.sex}, ${acc.age} ปี (${acc.date})</span>
+        ${distBadge}
+      `;
+      container.appendChild(li);
+    });
+  }
+
+  function refreshView() {
+    document.getElementById('panelListTitle').innerText = isRouteActive 
+      ? ⚠️ จุดเสี่ยงบนเส้นทางนำทาง 
+      : รายการจุดเสี่ยงอุบัติเหตุ;
+    renderMarkers(); 
+    updatePanelList(); 
+  }
+
+  document.querySelectorAll('#vehicleFilterGroup button').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      document.querySelectorAll('#vehicleFilterGroup button').forEach(b => b.setAttribute('aria-pressed', 'false'));
+      e.target.setAttribute('aria-pressed', 'true');
+      activeVehicleFilter = e.target.dataset.vfilter; 
+      refreshView();
+    });
+  });
+
+  window.onload = () => { 
+    loadDataFromGoogleSheets(); 
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(pos => {
+        myCurrentLocation = L.latLng(pos.coords.latitude, pos.coords.longitude);
+        document.getElementById('currentLocationText').innerText = พร้อมนำทางจากตำแหน่งของคุณ;
+      }, () => {
+        document.getElementById('currentLocationText').innerText = ประเทศไทย;
+      });
+    }
+  };
+
+  let myCurrentLocation = L.latLng(13.736717, 100.523186);
+  let userMarker = null;
+
+  document.getElementById('gpsBtn').addEventListener('click', () => {
+    navigator.geolocation.getCurrentPosition(pos => {
+      myCurrentLocation = L.latLng(pos.coords.latitude, pos.coords.longitude);
+      map.flyTo(myCurrentLocation, 15);
+      if(userMarker) map.removeLayer(userMarker);
+      userMarker = L.circleMarker(myCurrentLocation, { radius: 8, fillColor: '#2563eb', color: '#ffffff', weight: 3, fillOpacity: 1 }).addTo(map);
+    });
+  });
+
+  let routingControl = null;
+  function routeToDestination(destLatLng, destName) {
+    if (routingControl) map.removeControl(routingControl);
+    document.getElementById('clearRouteBtn').style.display = 'flex';
+    document.getElementById('searchResults').style.display = 'none';
+
+    routingControl = L.Routing.control({
+      waypoints: [ myCurrentLocation, destLatLng ],
+      routeWhileDragging: false,
+      lineOptions: { styles: [{ color: '#0284c7', opacity: 0.8, weight: 6 }] },
+      createMarker: (i, wp) => L.marker(wp.latLng).bindPopup(i === 0 ? "จุดเริ่มต้น" : destName)
+    }).addTo(map);
+
+    routingControl.on('routesfound', function(e) {
+      let routeCoords = e.routes[0].coordinates;
+      let risksFound = [];
+
+      accidents.forEach(acc => {
+        if(isNaN(acc.lat) || isNaN(acc.lng)) return;
+        let accLatLng = L.latLng(acc.lat, acc.lng);
+        let minDist = Infinity; let closestIdx = -1;
+        for(let i=0; i<routeCoords.length; i++) { 
+          let d = accLatLng.distanceTo(routeCoords[i]);
+          if(d < minDist) { minDist = d; closestIdx = i; }
+        }
+        if(minDist < 800) {
+          let distM = 0;
+          for(let i=0; i<closestIdx; i++) distM += routeCoords[i].distanceTo(routeCoords[i+1]);
+          risksFound.push({ ...acc, distFromStart: (distM/1000).toFixed(1), distRaw: distM });
+        }
+      });
+
+      risksFound.sort((a, b) => a.distRaw - b.distRaw);
+      isRouteActive = true; currentRisksInView = risksFound;
+      refreshView();
+      document.getElementById('startNavBtn').style.display = 'block';
+    });
+  }
+
+  document.getElementById('clearRouteBtn').addEventListener('click', () => {
+    if (routingControl) map.removeControl(routingControl);
+    document.getElementById('clearRouteBtn').style.display = 'none';
+    document.getElementById('startNavBtn').style.display = 'none';
+    document.getElementById('searchInput').value = '';
+    isRouteActive = false; currentRisksInView = accidents;
+    refreshView();
+  });
+
+  const searchInput = document.getElementById('searchInput');
+  const searchResults = document.getElementById('searchResults');
+  searchInput.addEventListener('input', (e) => {
+    let q = e.target.value.trim();
+    if(q.length < 2) { searchResults.style.display = 'none'; return; }
+    fetch(https://nominatim.openstreetmap.org/search?q=${q}&format=json&countrycodes=th&limit=4)
+      .then(res => res.json()).then(data => {
+        searchResults.innerHTML = '';
+        if(data.length > 0) {
+          searchResults.style.display = 'flex';
+          data.forEach(p => {
+            let div = document.createElement('div'); div.className = 'search-item'; div.innerText = p.display_name;
+            div.onclick = () => { searchInput.value = p.name; routeToDestination(L.latLng(p.lat, p.lon), p.name); };
+            searchResults.appendChild(div);
+          });
+        }
+      });
+  });
+
+  const panel = document.getElementById('dataPanel');
+  const sheetHeader = document.getElementById('sheetHeader');
+  let startY = 0;
+  sheetHeader.addEventListener('touchstart', (e) => { startY = e.touches[0].clientY; }, {passive: true});
+  sheetHeader.addEventListener('touchend', (e) => {
+    let endY = e.changedTouches[0].clientY;
+    if (startY - endY > 30) { panel.classList.add('expanded'); }
+    else if (endY - startY > 30) { panel.classList.remove('expanded'); }
+    else { panel.classList.toggle('expanded'); };
+  });
+  sheetHeader.addEventListener('click', () => { if(window.innerWidth <= 768) panel.classList.toggle('expanded'); });
+</script>
+</body>
+</html>
