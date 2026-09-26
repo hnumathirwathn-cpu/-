@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>ระบบนำทางและแจ้งเตือนจุดเสี่ยงอุบัติเหตุ</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -24,9 +24,9 @@
 --card-bg: #f3f4f6;
 }
 * { box-sizing: border-box; }
-html, body { width: 100%; height: 100%; height: 100dvh; margin: 0; padding: 0; font-family: 'Prompt', sans-serif; background: var(--bg-light); color: var(--text-main); overflow: hidden; }
+html, body { width: 100%; height: 100%; margin: 0; padding: 0; font-family: 'Prompt', sans-serif; background: var(--bg-light); color: var(--text-main); overflow: hidden; }
 
-.layout { display: flex; width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+.layout { display: flex; width: 100vw; height: 100vh; position: relative; }
 #map { flex: 1; height: 100%; width: 100%; z-index: 1; background: #e5e7eb; }
 .leaflet-routing-container { display: none !important; }
 
@@ -38,17 +38,13 @@ html, body { width: 100%; height: 100%; height: 100dvh; margin: 0; padding: 0; f
 .search-item:hover { background: #f3f4f6; }
 .clear-route-btn { position: absolute; top: 10px; right: 12px; background: #dc2626; color: white; border: none; border-radius: 50%; width: 26px; height: 26px; cursor: pointer; display: none; justify-content: center; align-items: center; font-weight: bold; }
 
-/* Action Buttons */
-.action-group { position: absolute; bottom: 30px; right: 15px; display: flex; flex-direction: column; gap: 10px; z-index: 1000; }
-.gps-btn { background: #2563eb; color: white; border: none; padding: 10px 18px; border-radius: 30px; font-family: inherit; font-weight: 500; font-size: 0.88rem; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
-.start-nav-btn { background: #16a34a; color: white; border: none; padding: 12px 20px; border-radius: 30px; font-family: inherit; font-weight: 600; font-size: 0.95rem; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.25); display: none; }
-.external-map-btn { background: #0284c7; color: white; border: none; padding: 10px 18px; border-radius: 30px; font-family: inherit; font-weight: 500; font-size: 0.85rem; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.2); display: none; }
+/* Float Buttons */
+.gps-btn { position: absolute; bottom: 30px; right: 20px; background: #2563eb; color: white; border: none; padding: 10px 18px; border-radius: 30px; font-family: inherit; font-weight: 500; font-size: 0.9rem; cursor: pointer; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+.start-nav-btn { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); background: #16a34a; color: white; border: none; padding: 12px 28px; border-radius: 30px; font-family: inherit; font-weight: 600; font-size: 1rem; cursor: pointer; z-index: 1000; box-shadow: 0 4px 15px rgba(0,0,0,0.25); display: none; }
 
 /* Side / Bottom Panel */
 .panelcol { width: 340px; background: var(--panel-bg); padding: 18px; overflow-y: auto; border-left: 1px solid #e5e7eb; display: flex; flex-direction: column; gap: 12px; z-index: 1010; position: relative; box-shadow: -2px 0 10px rgba(0,0,0,0.05); }
-.drag-handle-container { display: none; text-align: center; padding: 6px 0; cursor: pointer; }
-.drag-handle { width: 45px; height: 5px; background: #cbd5e1; border-radius: 10px; margin: 0 auto; }
-
+.drag-handle { display: none; }
 .my-location-card { background: var(--card-bg); padding: 10px 14px; border-radius: 8px; border-left: 4px solid var(--accent); }
 .my-location-card .title { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 2px; }
 .my-location-card .loc-name { font-weight: 600; color: #111827; font-size: 0.88rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -58,7 +54,7 @@ html, body { width: 100%; height: 100%; height: 100dvh; margin: 0; padding: 0; f
 .seg button { flex: 1; min-width: 65px; padding: 6px 4px; border: 1px solid #e5e7eb; border-radius: 6px; background: #ffffff; color: #4b5563; font-family: inherit; cursor: pointer; font-size: 0.78rem; text-align: center; font-weight: 500; }
 .seg button[aria-pressed="true"] { background: var(--accent); color: white; border-color: var(--accent); font-weight: 600; }
 
-.rank { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; padding-bottom: 30px;}
+.rank { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; padding-bottom: 20px;}
 .rank li { background: #ffffff; padding: 10px 12px; border-radius: 8px; cursor: pointer; border: 1px solid #e5e7eb; }
 .rank .nm { display: block; font-size: 0.85rem; font-weight: 600; color: #111827;}
 .rank .desc { font-size: 0.78rem; color: #dc2626; display: block; margin-top: 2px; font-weight: 600;}
@@ -66,31 +62,15 @@ html, body { width: 100%; height: 100%; height: 100dvh; margin: 0; padding: 0; f
 .status-badge { display: inline-block; background: #fee2e2; color: #dc2626; padding: 1px 6px; border-radius: 8px; font-size: 0.7rem; font-weight: 600; float: right; }
 .distance-badge { display: inline-block; background: #dbeafe; color: #1e40af; padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; font-weight: 600; margin-top: 4px; }
 
-/* Custom Car Icon Style */
-.car-icon-container { display: flex; justify-content: center; align-items: center; width: 44px; height: 44px; }
-.car-icon-inner { font-size: 30px; filter: drop-shadow(0px 3px 5px rgba(0,0,0,0.4)); transition: transform 0.2s ease-out; }
-
-/* Mobile Sheet Layout Fix */
-@media (max-width: 768px) {
+/* Responsive Mobile UI */
+@media (max-width: 768px) and (orientation: portrait) {
 .layout { display: block; }
-#map { height: 100dvh; width: 100vw; }
-.panelcol {
-position: fixed;
-bottom: 0;
-left: 0;
-width: 100%;
-height: 75dvh;
-border-radius: 20px 20px 0 0;
-padding: 10px 16px 20px 16px;
-transition: transform 0.3s ease-in-out;
-transform: translateY(calc(100% - 130px));
-border-left: none;
-z-index: 2000;
-box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
-}
+#map { height: 100vh; width: 100vw; }
+.panelcol { position: fixed; bottom: 0; left: 0; width: 100%; height: 75vh; border-radius: 20px 20px 0 0; padding-top: 10px; transition: transform 0.3s ease-in-out; transform: translateY(calc(100% - 120px)); border-left: none; }
 .panelcol.expanded { transform: translateY(0); }
-.drag-handle-container { display: block; }
-.action-group { bottom: 150px; right: 15px; z-index: 1500; }
+.drag-handle { display: block; width: 50px; height: 6px; background: #cbd5e1; border-radius: 10px; margin: 0 auto 12px auto; cursor: pointer; }
+.gps-btn { bottom: 140px; right: 15px; }
+.start-nav-btn { bottom: 140px; }
 }
 </style>
 </head>
@@ -102,26 +82,21 @@ box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
 <div class="search-box">
 <div style="position: relative;">
 <input type="text" id="searchInput" class="search-input" placeholder="ค้นหาจุดหมายปลายทาง..." autocomplete="off">
-<button class="clear-route-btn" id="clearRouteBtn" title="ยกเลิกการนำทาง">&times;</button>
+<button class="clear-route-btn" id="clearRouteBtn" title="ยกเลิกเส้นทาง">&times;</button>
 </div>
 <div class="search-results" id="searchResults"></div>
 </div>
 
-<div class="action-group">
-<button class="start-nav-btn" id="startNavBtn">🚘 เริ่มนำทาง (โหมดขับรถ)</button>
-<button class="external-map-btn" id="externalMapBtn">🗺️ เปิดใน Google Maps</button>
-<button class="gps-btn" id="gpsBtn">📍 พิกัดของฉัน</button>
-</div>
+<button class="gps-btn" id="gpsBtn">📍 พิกัดฉัน</button>
+<button class="start-nav-btn" id="startNavBtn">🚙 เริ่มนำทาง</button>
 
 <div class="panelcol" id="dataPanel">
-<div class="drag-handle-container" id="togglePanelBtn">
-<div class="drag-handle"></div>
-<span style="font-size:0.72rem; color:#6b7280; font-weight:500;">แตะเพื่อดูรายละเอียด / ซ่อน</span>
-</div>
-
+<div id="sheetHeader">
+<div class="drag-handle" id="dragHandle"></div>
 <div class="my-location-card">
 <div class="title">📍 ตำแหน่งปัจจุบัน</div>
 <div class="loc-name" id="currentLocationText">กำลังระบุตำแหน่ง...</div>
+</div>
 </div>
 
 <div>
@@ -144,9 +119,10 @@ box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-<script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
 
 <script>
+// 🗺️ พิกัดเริ่มต้น (กรุงเทพฯ ชั่วคราวก่อน GPS ทำงาน)
 const map = L.map('map', { zoomControl: false }).setView([13.736717, 100.523186], 6);
 
 L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
@@ -167,30 +143,11 @@ let accidents = [];
 let currentRisksInView = [];
 let activeVehicleFilter = 'all';
 let isRouteActive = false;
-let isNavigatingMode = false;
-
 let myCurrentLocation = L.latLng(13.736717, 100.523186);
-let prevLocation = null;
 let destinationLocation = null;
 let userMarker = null;
-let watchPositionId = null;
-let currentHeading = 0;
 
 const GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1DcFU2f2NBi20Gu-8cxEAkmvJl0_IU2eQUvrPZgAmDVg/export?format=csv";
-
-const carLeafletIcon = L.divIcon({
-className: 'car-icon-container',
-html: '<div class="car-icon-inner" id="carIconElement">🚘</div>',
-iconSize: [44, 44],
-iconAnchor: [22, 22]
-});
-
-const dotLeafletIcon = L.divIcon({
-className: 'car-icon-container',
-html: '<div style="width:16px; height:16px; background:#2563eb; border:3px solid #ffffff; border-radius:50%; box-shadow:0 2px 6px rgba(0,0,0,0.4);"></div>',
-iconSize: [24, 24],
-iconAnchor: [12, 12]
-});
 
 function parseICD10(code) {
 if (!code) return "อุบัติเหตุทางถนน";
@@ -306,89 +263,47 @@ renderMarkers();
 updatePanelList();
 }
 
-function updateUserMarkerPosition(latLng, headingDeg) {
-if (!userMarker) {
-userMarker = L.marker(latLng, { icon: isNavigatingMode ? carLeafletIcon : dotLeafletIcon }).addTo(map);
-} else {
-userMarker.setLatLng(latLng);
-userMarker.setIcon(isNavigatingMode ? carLeafletIcon : dotLeafletIcon);
-}
-
-if (isNavigatingMode) {
-const carElem = document.getElementById('carIconElement');
-if (carElem) {
-carElem.style.transform = 'rotate(' + headingDeg + 'deg)';
-}
-}
-}
-
-function startGPSWatch() {
+// 📍 ดึงตำแหน่ง GPS จริงแบบแม่นยำสูง (High Accuracy)
+function getGPSLocation() {
 const locText = document.getElementById('currentLocationText');
-locText.innerText = "กำลังเชื่อมต่อระบบ GPS...";
+locText.innerText = "กำลังค้นหาพิกัด GPS จริง...";
 
 if ("geolocation" in navigator) {
-if (watchPositionId) navigator.geolocation.clearWatch(watchPositionId);
-
-watchPositionId = navigator.geolocation.watchPosition(
+navigator.geolocation.getCurrentPosition(
 function(pos) {
-let lat = pos.coords.latitude;
-let lng = pos.coords.longitude;
-let newPos = L.latLng(lat, lng);
-
-if (prevLocation) {
-let dist = prevLocation.distanceTo(newPos);
-if (dist > 1.5) {
-let dLat = lat - prevLocation.lat;
-let dLng = lng - prevLocation.lng;
-currentHeading = Math.atan2(dLng, dLat) * (180 / Math.PI);
-}
-}
-
-if (pos.coords.heading !== null && !isNaN(pos.coords.heading)) {
-currentHeading = pos.coords.heading;
-}
-
-prevLocation = newPos;
-myCurrentLocation = newPos;
-
-locText.innerText = "📍 พิกัดของคุณ (" + lat.toFixed(4) + ", " + lng.toFixed(4) + ")";
-updateUserMarkerPosition(newPos, currentHeading);
-
-if (isNavigatingMode) {
-map.setView(newPos, 17, { animate: true });
-}
+myCurrentLocation = L.latLng(pos.coords.latitude, pos.coords.longitude);
+locText.innerText = "📍 ตำแหน่งของคุณจริง (" + pos.coords.latitude.toFixed(4) + ", " + pos.coords.longitude.toFixed(4) + ")";
+map.flyTo(myCurrentLocation, 14);
+if (userMarker) map.removeLayer(userMarker);
+userMarker = L.circleMarker(myCurrentLocation, { radius: 9, fillColor: '#2563eb', color: '#ffffff', weight: 3, fillOpacity: 1 }).addTo(map);
 },
 function(err) {
-locText.innerText = "⚠️ ไม่สามารถเข้าถึงพิกัด GPS ได้";
+locText.innerText = "⚠️ กรุณาเปิด GPS/Location บนอุปกรณ์";
 },
-{ enableHighAccuracy: true, timeout: 10000, maximumAge: 1000 }
+{ enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
 );
+} else {
+locText.innerText = "⚠️ อุปกรณ์ไม่รองรับ GPS";
 }
 }
 
-if (window.DeviceOrientationEvent) {
-window.addEventListener('deviceorientation', function(e) {
-if (isNavigatingMode && e.alpha !== null) {
-let compassHeading = e.webkitCompassHeading || (360 - e.alpha);
-if (compassHeading) {
-currentHeading = compassHeading;
-updateUserMarkerPosition(myCurrentLocation, currentHeading);
-}
-}
-}, true);
-}
+document.getElementById('gpsBtn').addEventListener('click', getGPSLocation);
 
-document.getElementById('gpsBtn').addEventListener('click', function() {
-map.flyTo(myCurrentLocation, 16);
-});
-
-// 📱 ระบบกดสลับเปิด/ปิดแถบรายละเอียดบนมือถือ
+// 📱 ระบบรูดลากแถบรายละเอียดบนมือถือ (Slide Up / Down)
 const dataPanel = document.getElementById('dataPanel');
-const togglePanelBtn = document.getElementById('togglePanelBtn');
+const sheetHeader = document.getElementById('sheetHeader');
 
-togglePanelBtn.addEventListener('click', function() {
+sheetHeader.addEventListener('click', function() {
 dataPanel.classList.toggle('expanded');
 });
+
+let startY = 0;
+sheetHeader.addEventListener('touchstart', function(e) { startY = e.touches[0].clientY; }, {passive: true});
+sheetHeader.addEventListener('touchend', function(e) {
+let endY = e.changedTouches[0].clientY;
+if (startY - endY > 40) { dataPanel.classList.add('expanded'); }
+else if (endY - startY > 40) { dataPanel.classList.remove('expanded'); }
+}, {passive: true});
 
 // 🔍 ค้นหาและคำนวณเส้นทาง
 let routingControl = null;
@@ -401,7 +316,7 @@ document.getElementById('searchResults').style.display = 'none';
 routingControl = L.Routing.control({
 waypoints: [ myCurrentLocation, destLatLng ],
 routeWhileDragging: false,
-lineOptions: { styles: [{ color: '#0284c7', opacity: 0.85, weight: 6 }] },
+lineOptions: { styles: [{ color: '#0284c7', opacity: 0.8, weight: 6 }] },
 createMarker: function(i, wp) { return L.marker(wp.latLng).bindPopup(i === 0 ? "จุดเริ่มต้น" : destName); }
 }).addTo(map);
 
@@ -429,23 +344,17 @@ isRouteActive = true;
 currentRisksInView = risksFound;
 document.getElementById('panelListTitle').innerText = "⚠️ จุดเสี่ยงบนเส้นทางนำทาง";
 refreshView();
-
 document.getElementById('startNavBtn').style.display = 'block';
-document.getElementById('externalMapBtn').style.display = 'block';
 });
 }
 
+// 🚙 ระบบส่งต่อเปิดแอปนำทางจริง (Google Maps / Apple Maps)
 document.getElementById('startNavBtn').addEventListener('click', function() {
-isNavigatingMode = true;
-updateUserMarkerPosition(myCurrentLocation, currentHeading);
-map.setView(myCurrentLocation, 17, { animate: true });
-dataPanel.classList.remove('expanded');
-});
-
-document.getElementById('externalMapBtn').addEventListener('click', function() {
 if (destinationLocation) {
 const navUrl = "https://www.google.com/maps/dir/?api=1&destination=" + destinationLocation.lat + "," + destinationLocation.lng + "&travelmode=driving";
 window.open(navUrl, '_blank');
+} else {
+alert("กรุณาเลือกจุดหมายปลายทางก่อนครับ");
 }
 });
 
@@ -453,18 +362,12 @@ document.getElementById('clearRouteBtn').addEventListener('click', function() {
 if (routingControl) map.removeControl(routingControl);
 document.getElementById('clearRouteBtn').style.display = 'none';
 document.getElementById('startNavBtn').style.display = 'none';
-document.getElementById('externalMapBtn').style.display = 'none';
 document.getElementById('searchInput').value = '';
-
 isRouteActive = false;
-isNavigatingMode = false;
 destinationLocation = null;
-
-updateUserMarkerPosition(myCurrentLocation, currentHeading);
 currentRisksInView = accidents;
 document.getElementById('panelListTitle').innerText = "รายการจุดเสี่ยงอุบัติเหตุ";
 refreshView();
-map.setView(myCurrentLocation, 12);
 });
 
 const searchInput = document.getElementById('searchInput');
@@ -510,7 +413,7 @@ refreshView();
 window.onload = function() {
 fixMapSize();
 loadDataFromGoogleSheets();
-startGPSWatch();
+getGPSLocation();
 };
 </script>
 </body>
