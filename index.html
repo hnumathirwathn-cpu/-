@@ -30,16 +30,19 @@ html, body { width: 100%; height: 100%; margin: 0; padding: 0; font-family: 'Pro
 #map { flex: 1; height: 100%; width: 100%; z-index: 1; background: #e5e7eb; }
 .leaflet-routing-container { display: none !important; }
 
-.search-box { position: absolute; top: 15px; left: 15px; width: calc(100% - 30px); max-width: 350px; z-index: 1000; }
+/* Search Box */
+.search-box { position: absolute; top: 15px; left: 15px; width: calc(100% - 30px); max-width: 360px; z-index: 1000; }
 .search-input { width: 100%; padding: 12px 18px; border-radius: 30px; border: 1px solid #d1d5db; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-family: inherit; font-size: 0.95rem; background: #ffffff; color: #111827; outline: none; }
 .search-results { background: #ffffff; margin-top: 6px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); max-height: 200px; overflow-y: auto; display: none; flex-direction: column; border: 1px solid #e5e7eb; }
 .search-item { padding: 10px 16px; cursor: pointer; border-bottom: 1px solid #f3f4f6; font-size: 0.85rem; color: #374151; }
 .search-item:hover { background: #f3f4f6; }
 .clear-route-btn { position: absolute; top: 10px; right: 12px; background: #dc2626; color: white; border: none; border-radius: 50%; width: 26px; height: 26px; cursor: pointer; display: none; justify-content: center; align-items: center; font-weight: bold; }
 
+/* Float Buttons */
 .gps-btn { position: absolute; bottom: 30px; right: 20px; background: #2563eb; color: white; border: none; padding: 10px 18px; border-radius: 30px; font-family: inherit; font-weight: 500; font-size: 0.9rem; cursor: pointer; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
 .start-nav-btn { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); background: #16a34a; color: white; border: none; padding: 12px 28px; border-radius: 30px; font-family: inherit; font-weight: 600; font-size: 1rem; cursor: pointer; z-index: 1000; box-shadow: 0 4px 15px rgba(0,0,0,0.25); display: none; }
 
+/* Side / Bottom Panel */
 .panelcol { width: 340px; background: var(--panel-bg); padding: 18px; overflow-y: auto; border-left: 1px solid #e5e7eb; display: flex; flex-direction: column; gap: 12px; z-index: 1010; position: relative; box-shadow: -2px 0 10px rgba(0,0,0,0.05); }
 .drag-handle { display: none; }
 .my-location-card { background: var(--card-bg); padding: 10px 14px; border-radius: 8px; border-left: 4px solid var(--accent); }
@@ -59,14 +62,15 @@ html, body { width: 100%; height: 100%; margin: 0; padding: 0; font-family: 'Pro
 .status-badge { display: inline-block; background: #fee2e2; color: #dc2626; padding: 1px 6px; border-radius: 8px; font-size: 0.7rem; font-weight: 600; float: right; }
 .distance-badge { display: inline-block; background: #dbeafe; color: #1e40af; padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; font-weight: 600; margin-top: 4px; }
 
-@media (max-width: 768px) {
+/* Responsive Mobile UI */
+@media (max-width: 768px) and (orientation: portrait) {
 .layout { display: block; }
 #map { height: 100vh; width: 100vw; }
-.panelcol { position: fixed; bottom: 0; left: 0; width: 100%; height: 70vh; border-radius: 16px 16px 0 0; padding-top: 8px; transition: transform 0.3s ease; transform: translateY(calc(100% - 130px)); border-left: none; }
+.panelcol { position: fixed; bottom: 0; left: 0; width: 100%; height: 75vh; border-radius: 20px 20px 0 0; padding-top: 10px; transition: transform 0.3s ease-in-out; transform: translateY(calc(100% - 120px)); border-left: none; }
 .panelcol.expanded { transform: translateY(0); }
-.drag-handle { display: block; width: 40px; height: 5px; background: #d1d5db; border-radius: 10px; margin: 0 auto 10px auto; }
-.gps-btn { bottom: 150px; right: 15px; }
-.start-nav-btn { bottom: 150px; }
+.drag-handle { display: block; width: 50px; height: 6px; background: #cbd5e1; border-radius: 10px; margin: 0 auto 12px auto; cursor: pointer; }
+.gps-btn { bottom: 140px; right: 15px; }
+.start-nav-btn { bottom: 140px; }
 }
 </style>
 </head>
@@ -88,7 +92,7 @@ html, body { width: 100%; height: 100%; margin: 0; padding: 0; font-family: 'Pro
 
 <div class="panelcol" id="dataPanel">
 <div id="sheetHeader">
-<div class="drag-handle"></div>
+<div class="drag-handle" id="dragHandle"></div>
 <div class="my-location-card">
 <div class="title">📍 ตำแหน่งปัจจุบัน</div>
 <div class="loc-name" id="currentLocationText">กำลังระบุตำแหน่ง...</div>
@@ -118,11 +122,12 @@ html, body { width: 100%; height: 100%; margin: 0; padding: 0; font-family: 'Pro
 <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
 
 <script>
+// 🗺️ พิกัดเริ่มต้น (กรุงเทพฯ ชั่วคราวก่อน GPS ทำงาน)
 const map = L.map('map', { zoomControl: false }).setView([13.736717, 100.523186], 6);
 
 L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
 maxZoom: 19,
-attribution: 'Tiles &copy; Esri &mdash; Source: Esri'
+attribution: 'Tiles &copy; Esri'
 }).addTo(map);
 
 function fixMapSize() {
@@ -139,6 +144,7 @@ let currentRisksInView = [];
 let activeVehicleFilter = 'all';
 let isRouteActive = false;
 let myCurrentLocation = L.latLng(13.736717, 100.523186);
+let destinationLocation = null;
 let userMarker = null;
 
 const GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1DcFU2f2NBi20Gu-8cxEAkmvJl0_IU2eQUvrPZgAmDVg/export?format=csv";
@@ -257,49 +263,52 @@ renderMarkers();
 updatePanelList();
 }
 
+// 📍 ดึงตำแหน่ง GPS จริงแบบแม่นยำสูง (High Accuracy)
 function getGPSLocation() {
 const locText = document.getElementById('currentLocationText');
-locText.innerText = "กำลังระบุตำแหน่ง...";
-
-let isDone = false;
-const timer = setTimeout(function() {
-if (!isDone) {
-isDone = true;
-locText.innerText = "🇹🇭 พิกัดเริ่มต้น (ประเทศไทย)";
-}
-}, 3500);
+locText.innerText = "กำลังค้นหาพิกัด GPS จริง...";
 
 if ("geolocation" in navigator) {
 navigator.geolocation.getCurrentPosition(
 function(pos) {
-if (isDone) return;
-isDone = true;
-clearTimeout(timer);
 myCurrentLocation = L.latLng(pos.coords.latitude, pos.coords.longitude);
-locText.innerText = "📍 ตำแหน่งของคุณปัจจุบัน";
+locText.innerText = "📍 ตำแหน่งของคุณจริง (" + pos.coords.latitude.toFixed(4) + ", " + pos.coords.longitude.toFixed(4) + ")";
 map.flyTo(myCurrentLocation, 14);
 if (userMarker) map.removeLayer(userMarker);
-userMarker = L.circleMarker(myCurrentLocation, { radius: 8, fillColor: '#2563eb', color: '#ffffff', weight: 3, fillOpacity: 1 }).addTo(map);
+userMarker = L.circleMarker(myCurrentLocation, { radius: 9, fillColor: '#2563eb', color: '#ffffff', weight: 3, fillOpacity: 1 }).addTo(map);
 },
 function(err) {
-if (isDone) return;
-isDone = true;
-clearTimeout(timer);
-locText.innerText = "🇹🇭 พิกัดเริ่มต้น (ประเทศไทย)";
+locText.innerText = "⚠️ กรุณาเปิด GPS/Location บนอุปกรณ์";
 },
-{ enableHighAccuracy: false, timeout: 3000, maximumAge: 60000 }
+{ enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
 );
 } else {
-isDone = true;
-clearTimeout(timer);
-locText.innerText = "🇹🇭 พิกัดเริ่มต้น (ประเทศไทย)";
+locText.innerText = "⚠️ อุปกรณ์ไม่รองรับ GPS";
 }
 }
 
 document.getElementById('gpsBtn').addEventListener('click', getGPSLocation);
 
+// 📱 ระบบรูดลากแถบรายละเอียดบนมือถือ (Slide Up / Down)
+const dataPanel = document.getElementById('dataPanel');
+const sheetHeader = document.getElementById('sheetHeader');
+
+sheetHeader.addEventListener('click', function() {
+dataPanel.classList.toggle('expanded');
+});
+
+let startY = 0;
+sheetHeader.addEventListener('touchstart', function(e) { startY = e.touches[0].clientY; }, {passive: true});
+sheetHeader.addEventListener('touchend', function(e) {
+let endY = e.changedTouches[0].clientY;
+if (startY - endY > 40) { dataPanel.classList.add('expanded'); }
+else if (endY - startY > 40) { dataPanel.classList.remove('expanded'); }
+}, {passive: true});
+
+// 🔍 ค้นหาและคำนวณเส้นทาง
 let routingControl = null;
 function routeToDestination(destLatLng, destName) {
+destinationLocation = destLatLng;
 if (routingControl) map.removeControl(routingControl);
 document.getElementById('clearRouteBtn').style.display = 'flex';
 document.getElementById('searchResults').style.display = 'none';
@@ -339,12 +348,23 @@ document.getElementById('startNavBtn').style.display = 'block';
 });
 }
 
+// 🚙 ระบบส่งต่อเปิดแอปนำทางจริง (Google Maps / Apple Maps)
+document.getElementById('startNavBtn').addEventListener('click', function() {
+if (destinationLocation) {
+const navUrl = "https://www.google.com/maps/dir/?api=1&destination=" + destinationLocation.lat + "," + destinationLocation.lng + "&travelmode=driving";
+window.open(navUrl, '_blank');
+} else {
+alert("กรุณาเลือกจุดหมายปลายทางก่อนครับ");
+}
+});
+
 document.getElementById('clearRouteBtn').addEventListener('click', function() {
 if (routingControl) map.removeControl(routingControl);
 document.getElementById('clearRouteBtn').style.display = 'none';
 document.getElementById('startNavBtn').style.display = 'none';
 document.getElementById('searchInput').value = '';
 isRouteActive = false;
+destinationLocation = null;
 currentRisksInView = accidents;
 document.getElementById('panelListTitle').innerText = "รายการจุดเสี่ยงอุบัติเหตุ";
 refreshView();
