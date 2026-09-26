@@ -30,6 +30,30 @@ html, body { width: 100%; height: 100%; margin: 0; padding: 0; font-family: 'Pro
 #map { flex: 1; height: 100%; width: 100%; z-index: 1; background: #e5e7eb; }
 .leaflet-routing-container { display: none !important; }
 
+/* In-App Navigation Banner */
+.nav-banner {
+position: absolute;
+top: 15px;
+left: 50%;
+transform: translateX(-50%);
+width: 90%;
+max-width: 420px;
+background: #0f172a;
+color: #ffffff;
+padding: 14px 18px;
+border-radius: 16px;
+display: none;
+align-items: center;
+gap: 14px;
+z-index: 2000;
+box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+border: 1px solid #334155;
+}
+.nav-banner .icon { font-size: 1.8rem; }
+.nav-banner .text-group { flex: 1; }
+.nav-banner .title { font-size: 1rem; font-weight: 600; color: #38bdf8; line-height: 1.2; }
+.nav-banner .sub-title { font-size: 0.8rem; color: #94a3b8; margin-top: 2px; }
+
 /* Search Box */
 .search-box { position: absolute; top: 15px; left: 15px; width: calc(100% - 30px); max-width: 360px; z-index: 1000; }
 .search-input { width: 100%; padding: 12px 18px; border-radius: 30px; border: 1px solid #d1d5db; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-family: inherit; font-size: 0.95rem; background: #ffffff; color: #111827; outline: none; }
@@ -79,7 +103,16 @@ html, body { width: 100%; height: 100%; margin: 0; padding: 0; font-family: 'Pro
 <div class="layout">
 <div id="map"></div>
 
-<div class="search-box">
+<!-- แถบแจ้งเตือนการนำทางบนแผนที่ -->
+<div class="nav-banner" id="navBanner">
+<div class="icon">🚙</div>
+<div class="text-group">
+<div class="title" id="navBannerText">กำลังนำทาง...</div>
+<div class="sub-title" id="navBannerSub">-- กม. | -- นาที</div>
+</div>
+</div>
+
+<div class="search-box" id="searchBoxContainer">
 <div style="position: relative;">
 <input type="text" id="searchInput" class="search-input" placeholder="ค้นหาจุดหมายปลายทาง..." autocomplete="off">
 <button class="clear-route-btn" id="clearRouteBtn" title="ยกเลิกเส้นทาง">&times;</button>
@@ -122,7 +155,6 @@ html, body { width: 100%; height: 100%; margin: 0; padding: 0; font-family: 'Pro
 <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
 
 <script>
-// 🗺️ พิกัดเริ่มต้น (กรุงเทพฯ ชั่วคราวก่อน GPS ทำงาน)
 const map = L.map('map', { zoomControl: false }).setView([13.736717, 100.523186], 6);
 
 L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
@@ -143,8 +175,13 @@ let accidents = [];
 let currentRisksInView = [];
 let activeVehicleFilter = 'all';
 let isRouteActive = false;
+let isNavigating = false;
+let watchId = null;
+let announcedRisks = new Set();
+
 let myCurrentLocation = L.latLng(13.736717, 100.523186);
 let destinationLocation = null;
+let destinationName = "";
 let userMarker = null;
 
 const GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1DcFU2f2NBi20Gu-8cxEAkmvJl0_IU2eQUvrPZgAmDVg/export?format=csv";
@@ -263,7 +300,15 @@ renderMarkers();
 updatePanelList();
 }
 
-// 📍 ดึงตำแหน่ง GPS จริงแบบแม่นยำสูง (High Accuracy)
+function updateUserMarkerPosition(latLng) {
+myCurrentLocation = latLng;
+if (!userMarker) {
+userMarker = L.circleMarker(latLng, { radius: 9, fillColor: '#2563eb', color: '#ffffff', weight: 3, fillOpacity: 1 }).addTo(map);
+} else {
+userMarker.setLatLng(latLng);
+}
+}
+
 function getGPSLocation() {
 const locText = document.getElementById('currentLocationText');
 locText.innerText = "กำลังค้นหาพิกัด GPS จริง...";
@@ -271,14 +316,13 @@ locText.innerText = "กำลังค้นหาพิกัด GPS จริ
 if ("geolocation" in navigator) {
 navigator.geolocation.getCurrentPosition(
 function(pos) {
-myCurrentLocation = L.latLng(pos.coords.latitude, pos.coords.longitude);
-locText.innerText = "📍 ตำแหน่งของคุณจริง (" + pos.coords.latitude.toFixed(4) + ", " + pos.coords.longitude.toFixed(4) + ")";
-map.flyTo(myCurrentLocation, 14);
-if (userMarker) map.removeLayer(userMarker);
-userMarker = L.circleMarker(myCurrentLocation, { radius: 9, fillColor: '#2563eb', color: '#ffffff', weight: 3, fillOpacity: 1 }).addTo(map);
+let latLng = L.latLng(pos.coords.latitude, pos.coords.longitude);
+updateUserMarkerPosition(latLng);
+locText.innerText = "📍 พิกัดของคุณ (" + pos.coords.latitude.toFixed(4) + ", " + pos.coords.longitude.toFixed(4) + ")";
+map.flyTo(latLng, 15);
 },
 function(err) {
-locText.innerText = "⚠️ กรุณาเปิด GPS/Location บนอุปกรณ์";
+locText.innerText = "⚠️ กรุณาเปิด GPS บนอุปกรณ์";
 },
 { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
 );
@@ -289,7 +333,6 @@ locText.innerText = "⚠️ อุปกรณ์ไม่รองรับ GPS
 
 document.getElementById('gpsBtn').addEventListener('click', getGPSLocation);
 
-// 📱 ระบบรูดลากแถบรายละเอียดบนมือถือ (Slide Up / Down)
 const dataPanel = document.getElementById('dataPanel');
 const sheetHeader = document.getElementById('sheetHeader');
 
@@ -305,10 +348,11 @@ if (startY - endY > 40) { dataPanel.classList.add('expanded'); }
 else if (endY - startY > 40) { dataPanel.classList.remove('expanded'); }
 }, {passive: true});
 
-// 🔍 ค้นหาและคำนวณเส้นทาง
 let routingControl = null;
 function routeToDestination(destLatLng, destName) {
 destinationLocation = destLatLng;
+destinationName = destName;
+
 if (routingControl) map.removeControl(routingControl);
 document.getElementById('clearRouteBtn').style.display = 'flex';
 document.getElementById('searchResults').style.display = 'none';
@@ -316,13 +360,20 @@ document.getElementById('searchResults').style.display = 'none';
 routingControl = L.Routing.control({
 waypoints: [ myCurrentLocation, destLatLng ],
 routeWhileDragging: false,
-lineOptions: { styles: [{ color: '#0284c7', opacity: 0.8, weight: 6 }] },
+lineOptions: { styles: [{ color: '#0284c7', opacity: 0.85, weight: 6 }] },
 createMarker: function(i, wp) { return L.marker(wp.latLng).bindPopup(i === 0 ? "จุดเริ่มต้น" : destName); }
 }).addTo(map);
 
 routingControl.on('routesfound', function(e) {
-let routeCoords = e.routes[0].coordinates;
+let route = e.routes[0];
+let routeCoords = route.coordinates;
 let risksFound = [];
+
+let distKm = (route.summary.totalDistance / 1000).toFixed(1);
+let durationMin = Math.round(route.summary.totalTime / 60);
+
+document.getElementById('navBannerText').innerText = "มุ่งหน้าไป: " + destName;
+document.getElementById('navBannerSub').innerText = distKm + " กม. | ประมาณ " + durationMin + " นาที";
 
 accidents.forEach(function(acc) {
 if(isNaN(acc.lat) || isNaN(acc.lng)) return;
@@ -348,17 +399,91 @@ document.getElementById('startNavBtn').style.display = 'block';
 });
 }
 
-// 🚙 ระบบส่งต่อเปิดแอปนำทางจริง (Google Maps / Apple Maps)
+// 🔊 ระบบส่งเสียงพูดภาษาไทย (Voice Alert)
+function speakAlert(text) {
+if ('speechSynthesis' in window) {
+window.speechSynthesis.cancel(); // ล้างคิวเสียงเก่าก่อนพูด
+const utter = new SpeechSynthesisUtterance(text);
+utter.lang = 'th-TH';
+utter.rate = 1.0;
+window.speechSynthesis.speak(utter);
+}
+}
+
+// 🚘 ระบบนำทาง In-App แบบ Real-time บนเว็บ
+function startNavigationMode() {
+isNavigating = true;
+announcedRisks.clear();
+
+const btn = document.getElementById('startNavBtn');
+btn.innerText = "⏹️ หยุดนำทาง";
+btn.style.background = "#dc2626";
+
+document.getElementById('navBanner').style.display = 'flex';
+document.getElementById('searchBoxContainer').style.display = 'none';
+
+speakAlert("เริ่มการนำทาง มุ่งหน้าไปยัง " + destinationName + " ขอให้เดินทางโดยปลอดภัยครับ");
+
+map.setZoom(17);
+
+if ("geolocation" in navigator) {
+watchId = navigator.geolocation.watchPosition(
+function(pos) {
+let currentLatLng = L.latLng(pos.coords.latitude, pos.coords.longitude);
+updateUserMarkerPosition(currentLatLng);
+
+// เลื่อนมุมกล้องตามตำแหน่งรถ
+map.panTo(currentLatLng);
+
+// ตรวจจับรัศมีจุดเสี่ยงอุบัติเหตุ 300 เมตร
+accidents.forEach(function(acc) {
+if (isNaN(acc.lat) || isNaN(acc.lng)) return;
+let riskPos = L.latLng(acc.lat, acc.lng);
+let distanceMeters = currentLatLng.distanceTo(riskPos);
+
+if (distanceMeters <= 300 && !announcedRisks.has(acc.id)) {
+announcedRisks.add(acc.id);
+speakAlert("โปรดระมัดระวัง! ข้างหน้าอีก 300 เมตร เป็นจุดเสี่ยง " + acc.place + " สาเหตุ " + acc.cause);
+}
+});
+},
+function(err) {
+console.warn("GPS Tracking Error");
+},
+{ enableHighAccuracy: true, maximumAge: 1000, timeout: 5000 }
+);
+}
+}
+
+function stopNavigationMode() {
+isNavigating = false;
+if (watchId) navigator.geolocation.clearWatch(watchId);
+watchId = null;
+
+const btn = document.getElementById('startNavBtn');
+btn.innerText = "🚙 เริ่มนำทาง";
+btn.style.background = "#16a34a";
+
+document.getElementById('navBanner').style.display = 'none';
+document.getElementById('searchBoxContainer').style.display = 'block';
+
+speakAlert("สิ้นสุดการนำทาง");
+}
+
 document.getElementById('startNavBtn').addEventListener('click', function() {
-if (destinationLocation) {
-const navUrl = "https://www.google.com/maps/dir/?api=1&destination=" + destinationLocation.lat + "," + destinationLocation.lng + "&travelmode=driving";
-window.open(navUrl, '_blank');
-} else {
+if (!destinationLocation) {
 alert("กรุณาเลือกจุดหมายปลายทางก่อนครับ");
+return;
+}
+if (!isNavigating) {
+startNavigationMode();
+} else {
+stopNavigationMode();
 }
 });
 
 document.getElementById('clearRouteBtn').addEventListener('click', function() {
+if (isNavigating) stopNavigationMode();
 if (routingControl) map.removeControl(routingControl);
 document.getElementById('clearRouteBtn').style.display = 'none';
 document.getElementById('startNavBtn').style.display = 'none';
