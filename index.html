@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>ระบบนำทางและแจ้งเตือนจุดเสี่ยงอุบัติเหตุ</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -24,9 +24,9 @@
 --card-bg: #f3f4f6;
 }
 * { box-sizing: border-box; }
-html, body { width: 100%; height: 100%; margin: 0; padding: 0; font-family: 'Prompt', sans-serif; background: var(--bg-light); color: var(--text-main); overflow: hidden; }
+html, body { width: 100%; height: 100%; height: 100dvh; margin: 0; padding: 0; font-family: 'Prompt', sans-serif; background: var(--bg-light); color: var(--text-main); overflow: hidden; }
 
-.layout { display: flex; width: 100vw; height: 100vh; position: relative; }
+.layout { display: flex; width: 100vw; height: 100vh; height: 100dvh; position: relative; }
 #map { flex: 1; height: 100%; width: 100%; z-index: 1; background: #e5e7eb; }
 .leaflet-routing-container { display: none !important; }
 
@@ -38,7 +38,7 @@ html, body { width: 100%; height: 100%; margin: 0; padding: 0; font-family: 'Pro
 .search-item:hover { background: #f3f4f6; }
 .clear-route-btn { position: absolute; top: 10px; right: 12px; background: #dc2626; color: white; border: none; border-radius: 50%; width: 26px; height: 26px; cursor: pointer; display: none; justify-content: center; align-items: center; font-weight: bold; }
 
-/* Buttons Container */
+/* Action Buttons */
 .action-group { position: absolute; bottom: 30px; right: 15px; display: flex; flex-direction: column; gap: 10px; z-index: 1000; }
 .gps-btn { background: #2563eb; color: white; border: none; padding: 10px 18px; border-radius: 30px; font-family: inherit; font-weight: 500; font-size: 0.88rem; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
 .start-nav-btn { background: #16a34a; color: white; border: none; padding: 12px 20px; border-radius: 30px; font-family: inherit; font-weight: 600; font-size: 0.95rem; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.25); display: none; }
@@ -46,7 +46,9 @@ html, body { width: 100%; height: 100%; margin: 0; padding: 0; font-family: 'Pro
 
 /* Side / Bottom Panel */
 .panelcol { width: 340px; background: var(--panel-bg); padding: 18px; overflow-y: auto; border-left: 1px solid #e5e7eb; display: flex; flex-direction: column; gap: 12px; z-index: 1010; position: relative; box-shadow: -2px 0 10px rgba(0,0,0,0.05); }
-.drag-handle { display: none; }
+.drag-handle-container { display: none; text-align: center; padding: 6px 0; cursor: pointer; }
+.drag-handle { width: 45px; height: 5px; background: #cbd5e1; border-radius: 10px; margin: 0 auto; }
+
 .my-location-card { background: var(--card-bg); padding: 10px 14px; border-radius: 8px; border-left: 4px solid var(--accent); }
 .my-location-card .title { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 2px; }
 .my-location-card .loc-name { font-weight: 600; color: #111827; font-size: 0.88rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -56,7 +58,7 @@ html, body { width: 100%; height: 100%; margin: 0; padding: 0; font-family: 'Pro
 .seg button { flex: 1; min-width: 65px; padding: 6px 4px; border: 1px solid #e5e7eb; border-radius: 6px; background: #ffffff; color: #4b5563; font-family: inherit; cursor: pointer; font-size: 0.78rem; text-align: center; font-weight: 500; }
 .seg button[aria-pressed="true"] { background: var(--accent); color: white; border-color: var(--accent); font-weight: 600; }
 
-.rank { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; padding-bottom: 20px;}
+.rank { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; padding-bottom: 30px;}
 .rank li { background: #ffffff; padding: 10px 12px; border-radius: 8px; cursor: pointer; border: 1px solid #e5e7eb; }
 .rank .nm { display: block; font-size: 0.85rem; font-weight: 600; color: #111827;}
 .rank .desc { font-size: 0.78rem; color: #dc2626; display: block; margin-top: 2px; font-weight: 600;}
@@ -68,14 +70,27 @@ html, body { width: 100%; height: 100%; margin: 0; padding: 0; font-family: 'Pro
 .car-icon-container { display: flex; justify-content: center; align-items: center; width: 44px; height: 44px; }
 .car-icon-inner { font-size: 30px; filter: drop-shadow(0px 3px 5px rgba(0,0,0,0.4)); transition: transform 0.2s ease-out; }
 
-/* Mobile Sheet Layout */
-@media (max-width: 768px) and (orientation: portrait) {
+/* Mobile Sheet Layout Fix */
+@media (max-width: 768px) {
 .layout { display: block; }
-#map { height: 100vh; width: 100vw; }
-.panelcol { position: fixed; bottom: 0; left: 0; width: 100%; height: 75vh; border-radius: 20px 20px 0 0; padding-top: 10px; transition: transform 0.3s ease-in-out; transform: translateY(calc(100% - 120px)); border-left: none; }
+#map { height: 100dvh; width: 100vw; }
+.panelcol {
+position: fixed;
+bottom: 0;
+left: 0;
+width: 100%;
+height: 75dvh;
+border-radius: 20px 20px 0 0;
+padding: 10px 16px 20px 16px;
+transition: transform 0.3s ease-in-out;
+transform: translateY(calc(100% - 130px));
+border-left: none;
+z-index: 2000;
+box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+}
 .panelcol.expanded { transform: translateY(0); }
-.drag-handle { display: block; width: 50px; height: 6px; background: #cbd5e1; border-radius: 10px; margin: 0 auto 12px auto; cursor: pointer; }
-.action-group { bottom: 140px; right: 15px; }
+.drag-handle-container { display: block; }
+.action-group { bottom: 150px; right: 15px; z-index: 1500; }
 }
 </style>
 </head>
@@ -99,12 +114,14 @@ html, body { width: 100%; height: 100%; margin: 0; padding: 0; font-family: 'Pro
 </div>
 
 <div class="panelcol" id="dataPanel">
-<div id="sheetHeader">
-<div class="drag-handle" id="dragHandle"></div>
+<div class="drag-handle-container" id="togglePanelBtn">
+<div class="drag-handle"></div>
+<span style="font-size:0.72rem; color:#6b7280; font-weight:500;">แตะเพื่อดูรายละเอียด / ซ่อน</span>
+</div>
+
 <div class="my-location-card">
 <div class="title">📍 ตำแหน่งปัจจุบัน</div>
 <div class="loc-name" id="currentLocationText">กำลังระบุตำแหน่ง...</div>
-</div>
 </div>
 
 <div>
@@ -161,7 +178,6 @@ let currentHeading = 0;
 
 const GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1DcFU2f2NBi20Gu-8cxEAkmvJl0_IU2eQUvrPZgAmDVg/export?format=csv";
 
-// 🚘 HTML DivIcon สำหรับหมุดรูป รถยนต์
 const carLeafletIcon = L.divIcon({
 className: 'car-icon-container',
 html: '<div class="car-icon-inner" id="carIconElement">🚘</div>',
@@ -290,7 +306,6 @@ renderMarkers();
 updatePanelList();
 }
 
-// 🧭 อัปเดตตำแหน่งและการหมุนของรถยนต์
 function updateUserMarkerPosition(latLng, headingDeg) {
 if (!userMarker) {
 userMarker = L.marker(latLng, { icon: isNavigatingMode ? carLeafletIcon : dotLeafletIcon }).addTo(map);
@@ -307,10 +322,9 @@ carElem.style.transform = 'rotate(' + headingDeg + 'deg)';
 }
 }
 
-// 🛰️ ระบบติดตาม GPS Real-time & คำนวณการหมุนตามเข็มทิศ
 function startGPSWatch() {
 const locText = document.getElementById('currentLocationText');
-locText.innerText = "กำลังเชื่อมต่อระบบ GPS นำทาง...";
+locText.innerText = "กำลังเชื่อมต่อระบบ GPS...";
 
 if ("geolocation" in navigator) {
 if (watchPositionId) navigator.geolocation.clearWatch(watchPositionId);
@@ -321,10 +335,9 @@ let lat = pos.coords.latitude;
 let lng = pos.coords.longitude;
 let newPos = L.latLng(lat, lng);
 
-// คำนวณทิศทางการขับขี่จากพิกัดใหม่เมื่อมีการเคลื่อนที่
 if (prevLocation) {
 let dist = prevLocation.distanceTo(newPos);
-if (dist > 1.5) { // รถขยับเกิน 1.5 เมตร
+if (dist > 1.5) {
 let dLat = lat - prevLocation.lat;
 let dLng = lng - prevLocation.lng;
 currentHeading = Math.atan2(dLng, dLat) * (180 / Math.PI);
@@ -341,7 +354,6 @@ myCurrentLocation = newPos;
 locText.innerText = "📍 พิกัดของคุณ (" + lat.toFixed(4) + ", " + lng.toFixed(4) + ")";
 updateUserMarkerPosition(newPos, currentHeading);
 
-// ถ้าอยู่ในโหมดนำทาง ให้ดึงหน้าจอซูมเข้าใกล้ตัวรถตลอดเวลา
 if (isNavigatingMode) {
 map.setView(newPos, 17, { animate: true });
 }
@@ -354,7 +366,6 @@ locText.innerText = "⚠️ ไม่สามารถเข้าถึงพ�
 }
 }
 
-// 📱 เชื่อมต่อเข็มทิศโทรศัพท์ (Device Orientation)
 if (window.DeviceOrientationEvent) {
 window.addEventListener('deviceorientation', function(e) {
 if (isNavigatingMode && e.alpha !== null) {
@@ -371,21 +382,13 @@ document.getElementById('gpsBtn').addEventListener('click', function() {
 map.flyTo(myCurrentLocation, 16);
 });
 
-// 📱 ระบบรูดลากแถบรายละเอียดบนมือถือ
+// 📱 ระบบกดสลับเปิด/ปิดแถบรายละเอียดบนมือถือ
 const dataPanel = document.getElementById('dataPanel');
-const sheetHeader = document.getElementById('sheetHeader');
+const togglePanelBtn = document.getElementById('togglePanelBtn');
 
-sheetHeader.addEventListener('click', function() {
+togglePanelBtn.addEventListener('click', function() {
 dataPanel.classList.toggle('expanded');
 });
-
-let startY = 0;
-sheetHeader.addEventListener('touchstart', function(e) { startY = e.touches[0].clientY; }, {passive: true});
-sheetHeader.addEventListener('touchend', function(e) {
-let endY = e.changedTouches[0].clientY;
-if (startY - endY > 40) { dataPanel.classList.add('expanded'); }
-else if (endY - startY > 40) { dataPanel.classList.remove('expanded'); }
-}, {passive: true});
 
 // 🔍 ค้นหาและคำนวณเส้นทาง
 let routingControl = null;
@@ -432,15 +435,13 @@ document.getElementById('externalMapBtn').style.display = 'block';
 });
 }
 
-// 🚘 ปุ่มกดเข้าสู่ "โหมดนำทางขับรถ Real-time บนเว็บ"
 document.getElementById('startNavBtn').addEventListener('click', function() {
 isNavigatingMode = true;
 updateUserMarkerPosition(myCurrentLocation, currentHeading);
 map.setView(myCurrentLocation, 17, { animate: true });
-dataPanel.classList.remove('expanded'); // หดแผงล่างเพื่อเห็นทางชัดขึ้น
+dataPanel.classList.remove('expanded');
 });
 
-// 🗺️ ปุ่มเปิดใน Google Maps แอปภายนอก
 document.getElementById('externalMapBtn').addEventListener('click', function() {
 if (destinationLocation) {
 const navUrl = "https://www.google.com/maps/dir/?api=1&destination=" + destinationLocation.lat + "," + destinationLocation.lng + "&travelmode=driving";
